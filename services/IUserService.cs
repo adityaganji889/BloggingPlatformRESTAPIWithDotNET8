@@ -4,11 +4,11 @@ namespace BloggingPlatform.services
 {
     public interface IUserService
     {
-        public bool SaveChanges();
-        public void AddEntity<T>(T entityToAdd);
-        public void RemoveEntity<T>(T entityToAdd);
-        public IEnumerable<User> GetUsers();
-        public User GetSingleUser(int userId);
+        public Task<bool> SaveChanges();
+        public Task AddEntity<T>(T entityToAdd);
+        public Task RemoveEntity<T>(T entityToAdd);
+        public Task<IEnumerable<User>> GetUsers();
+        public Task<User> GetSingleUser(int userId);
 
     }
 }

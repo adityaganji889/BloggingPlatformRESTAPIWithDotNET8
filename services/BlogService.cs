@@ -17,42 +17,42 @@ namespace BloggingPlatform.services
 
         }
         
-        public bool SaveChanges()
+        public async Task<bool> SaveChanges()
         {
-            return _blogRepository.SaveChanges();
+            return await _blogRepository.SaveChanges();
         }
 
-        public void AddEntity<T>(T entityToAdd)
+        public async Task AddEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _blogRepository.AddEntity<T>(entityToAdd);
+                await _blogRepository.AddEntity<T>(entityToAdd);
             }
         }
 
-        public void RemoveEntity<T>(T entityToAdd)
+        public async Task RemoveEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _blogRepository.RemoveEntity<T>(entityToAdd);
+               await _blogRepository.RemoveEntity<T>(entityToAdd);
             }
         }
 
-        public IEnumerable<Blog> GetBlogs()
+        public async Task<IEnumerable<Blog>> GetBlogs()
         {
-            IEnumerable<Blog> blogs = _blogRepository.GetBlogs();
+            IEnumerable<Blog> blogs = await _blogRepository.GetBlogs();
             return blogs;
         }
 
-        public IEnumerable<Blog> GetBlogsByAuthor(int authorId)
+        public async Task<IEnumerable<Blog>> GetBlogsByAuthor(int authorId)
         {
-            IEnumerable<Blog> blogs = _blogRepository.GetBlogsByAuthor(authorId);
+            IEnumerable<Blog> blogs = await _blogRepository.GetBlogsByAuthor(authorId);
             return blogs;
         }
 
-        public Blog GetSingleBlog(int userId)
+        public async Task<Blog> GetSingleBlog(int userId)
         {
-            Blog? blog = _blogRepository.GetSingleBlog(userId);
+            Blog? blog = await _blogRepository.GetSingleBlog(userId);
 
             if (blog != null)
             {

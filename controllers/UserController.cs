@@ -29,9 +29,9 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve all users", Description = "Fetches a list of all users in the system.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved users.", typeof(CommonFieldsResponseDto<RegisterResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No users found.")]
-    public IActionResult GetUsers()
+    public async Task<IActionResult> GetUsers()
     {
-        IEnumerable<User> users = _userService.GetUsers();
+        IEnumerable<User> users = await _userService.GetUsers();
         CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
         if (users?.Count() != 0)
         {
@@ -55,9 +55,9 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve a single user", Description = "Fetches details of a user by their ID.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved user details.", typeof(CommonFieldsResponseDto<RegisterResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
-    public IActionResult GetSingleUser(int userId)
+    public async Task<IActionResult> GetSingleUser(int userId)
     {
-        User? user = _userService.GetSingleUser(userId);
+        User? user = await _userService.GetSingleUser(userId);
 
         CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
 
@@ -85,7 +85,7 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Edit user details", Description = "Updates the details of a user.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully updated user details.", typeof(CommonFieldsResponseDto<RegisterResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
-    public IActionResult EditUser(RegisterRequestDto user, [FromQuery] int? userId)
+    public async Task<IActionResult> EditUser(RegisterRequestDto user, [FromQuery] int? userId)
     {
         User? userDb = null;
 
@@ -99,15 +99,15 @@ public class UserController : ControllerBase
             loggedInUserId = loggedUserId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (userId != null)
         {
-            userDb = _userService.GetSingleUser(userId.Value);
+            userDb = await _userService.GetSingleUser(userId.Value);
         }
         else
         {
-            userDb = _userService.GetSingleUser(loggedInUserId);
+            userDb = await _userService.GetSingleUser(loggedInUserId);
         }
 
         if (userDb != null && (loggedInUser.Admin || userDb.UserId.Equals(loggedInUser.UserId)))
@@ -117,7 +117,16 @@ public class UserController : ControllerBase
             userDb.Email = user.Email;
             userDb.Gender = user.Gender == "Male" ? true : false;
             userDb.UserUpdated = DateTime.Now;
-            if (_userService.SaveChanges())
+            bool changesDone = false;
+            try
+            {
+                changesDone = await _userService.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            if (changesDone)
             {
                 commonFieldsResponseDto.Success = true;
                 if (userDb.UserId.Equals(loggedInUser.UserId))
@@ -150,9 +159,9 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Delete a user", Description = "Removes a user from the system.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully deleted user.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
-    public IActionResult DeleteUser(int userId)
+    public async Task<IActionResult> DeleteUser(int userId)
     {
-        User? userDb = _userService.GetSingleUser(userId);
+        User? userDb = await _userService.GetSingleUser(userId);
 
         CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
 
@@ -164,12 +173,22 @@ public class UserController : ControllerBase
             loggedInUserId = loggedUserId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (userDb != null && (loggedInUser.Admin || loggedInUserId != userId))
         {
-            _userService.RemoveEntity<User>(userDb);
-            if (_userService.SaveChanges())
+            await _userService.RemoveEntity<User>(userDb);
+
+            bool changesDone = false;
+            try
+            {
+                changesDone = await _userService.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            if (changesDone)
             {
                 commonFieldsResponseDto.Success = true;
                 commonFieldsResponseDto.Message = "User Details with id: " + userId + " is Deleted Successfully.";
@@ -196,9 +215,9 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Toggle admin rights", Description = "Enables or disables admin rights for a user.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully toggled admin rights.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
-    public IActionResult ToggleUserAdminRights(int userId)
+    public async Task<IActionResult> ToggleUserAdminRights(int userId)
     {
-        User? userDb = _userService.GetSingleUser(userId);
+        User? userDb = await _userService.GetSingleUser(userId);
 
         CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
 
@@ -210,13 +229,22 @@ public class UserController : ControllerBase
             loggedInUserId = loggedUserId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (userDb != null && (loggedInUser.Admin || loggedInUserId != userId))
         {
             userDb.Admin = !userDb.Admin;
             userDb.UserUpdated = DateTime.Now;
-            if (_userService.SaveChanges())
+            bool changesDone = false;
+            try
+            {
+                changesDone = await _userService.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            if (changesDone)
             {
                 commonFieldsResponseDto.Success = true;
                 commonFieldsResponseDto.Message = "Admin Rights of id: " + userId + " is Updated Successfully.";
@@ -243,9 +271,9 @@ public class UserController : ControllerBase
     [SwaggerOperation(Summary = "Toggle user active status", Description = "Enables or disables a user's active status.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully toggled active status.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
-    public IActionResult ToggleUserActiveRights(int userId)
+    public async Task<IActionResult> ToggleUserActiveRights(int userId)
     {
-        User? userDb = _userService.GetSingleUser(userId);
+        User? userDb = await _userService.GetSingleUser(userId);
 
         CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
 
@@ -257,13 +285,22 @@ public class UserController : ControllerBase
             loggedInUserId = loggedUserId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (userDb != null && (loggedInUser.Admin || loggedInUserId != userId))
         {
             userDb.Active = !userDb.Active;
             userDb.UserUpdated = DateTime.Now;
-            if (_userService.SaveChanges())
+            bool changesDone = false;
+            try
+            {
+                changesDone = await _userService.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            if (changesDone)
             {
                 commonFieldsResponseDto.Success = true;
                 commonFieldsResponseDto.Message = "User Active Rights of id: " + userId + " is Updated Successfully.";

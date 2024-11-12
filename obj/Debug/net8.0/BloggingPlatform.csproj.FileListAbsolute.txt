@@ -80,3 +80,4 @@ E:\NET8Projects\BloggingPlatform\bin\Debug\net8.0\BloggingPlatform.pdb
 E:\NET8Projects\BloggingPlatform\obj\Debug\net8.0\BloggingPlatform.genruntimeconfig.cache
 E:\NET8Projects\BloggingPlatform\obj\Debug\net8.0\ref\BloggingPlatform.dll
 E:\NET8Projects\BloggingPlatform\bin\Debug\net8.0\Swashbuckle.AspNetCore.Annotations.dll
+E:\NET8Projects\BloggingPlatform\obj\Debug\net8.0\BloggingPlatform.sourcelink.json

@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Mail;
 using System.Reflection;
 using System.Text;
 using BloggingPlatform.dtos;
@@ -90,6 +92,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false
         };
     });
+
+//For sending mails
+
+var smtpSettings = builder.Configuration.GetSection("SmtpSettings");
+
+builder.Services.AddSingleton(new SmtpClient(smtpSettings["Server"]) // Replace with your SMTP server
+{
+    Port = int.Parse(smtpSettings["Port"]), // Common SMTP port for TLS
+    Credentials = new NetworkCredential(smtpSettings["User"], smtpSettings["Password"]), // Replace with your email credentials
+    EnableSsl = true,
+});
 
 
 

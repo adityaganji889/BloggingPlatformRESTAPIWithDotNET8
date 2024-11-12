@@ -1,5 +1,7 @@
+using System.Runtime.CompilerServices;
 using BloggingPlatform.config;
 using BloggingPlatform.models;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace BloggingPlatform.repositories
@@ -13,38 +15,38 @@ namespace BloggingPlatform.repositories
             _entityFramework = new DataContextEF(config);
         }
 
-        public bool SaveChanges()
+        public async Task<bool> SaveChanges()
         {
-            return _entityFramework.SaveChanges() > 0;
+            return await _entityFramework.SaveChangesAsync() > 0;
         }
 
-        public void AddEntity<T>(T entityToAdd)
+        public async Task AddEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _entityFramework.Add(entityToAdd);
+                await _entityFramework.AddAsync(entityToAdd);
             }
         }
 
-        public void RemoveEntity<T>(T entityToAdd)
+        public async Task RemoveEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _entityFramework.Remove(entityToAdd);
+               _entityFramework.Remove(entityToAdd);
             }
         }
 
-        public IEnumerable<User> GetUsers()
+        public async Task<IEnumerable<User>> GetUsers()
         {
-            IEnumerable<User> users = _entityFramework.Users.ToList<User>();
+            IEnumerable<User> users = await _entityFramework.Users.ToListAsync<User>();
             return users;
         }
 
-        public User GetSingleUser(int userId)
+        public async Task<User> GetSingleUser(int userId)
         {
-            User? user = _entityFramework.Users
+            User? user = await _entityFramework.Users
                 .Where(u => u.UserId == userId)
-                .FirstOrDefault<User>();
+                .FirstOrDefaultAsync<User>();
 
             if (user != null)
             {

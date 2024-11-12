@@ -15,36 +15,36 @@ namespace BloggingPlatform.services
 
         }
         
-        public bool SaveChanges()
+        public async Task<bool> SaveChanges()
         {
-            return _userRepository.SaveChanges();
+            return await _userRepository.SaveChanges();
         }
 
-        public void AddEntity<T>(T entityToAdd)
+        public async Task AddEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _userRepository.AddEntity<T>(entityToAdd);
+                await _userRepository.AddEntity<T>(entityToAdd);
             }
         }
 
-        public void RemoveEntity<T>(T entityToAdd)
+        public async Task RemoveEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _userRepository.RemoveEntity<T>(entityToAdd);
+                await _userRepository.RemoveEntity<T>(entityToAdd);
             }
         }
 
-        public IEnumerable<User> GetUsers()
+        public async Task<IEnumerable<User>> GetUsers()
         {
-            IEnumerable<User> users = _userRepository.GetUsers();
+            IEnumerable<User> users = await _userRepository.GetUsers();
             return users;
         }
 
-        public User GetSingleUser(int userId)
+        public async Task<User> GetSingleUser(int userId)
         {
-            User? user = _userRepository.GetSingleUser(userId);
+            User? user = await _userRepository.GetSingleUser(userId);
 
             if (user != null)
             {

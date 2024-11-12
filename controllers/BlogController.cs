@@ -31,10 +31,10 @@ public class BlogController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve all blogs", Description = "Fetches a list of all blogs in the system.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved blogs.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No blogs found.")]
-    public IActionResult GetBlogs()
+    public async Task<IActionResult> GetBlogs()
     {
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
-        IEnumerable<Blog> blogs = _blogService.GetBlogs();
+        IEnumerable<Blog> blogs = await _blogService.GetBlogs();
         List<BlogResponseDto> blogsList = new List<BlogResponseDto>();
         if (blogs.Count() != 0)
         {
@@ -58,10 +58,10 @@ public class BlogController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve blogs by author", Description = "Fetches all blogs authored by a specific user.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved author's blogs.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No blogs found for this author.")]
-    public IActionResult GetBlogsByAuthor(int authorId)
+    public async Task<IActionResult> GetBlogsByAuthor(int authorId)
     {
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
-        IEnumerable<Blog> blogs = _blogService.GetBlogsByAuthor(authorId);
+        IEnumerable<Blog> blogs = await _blogService.GetBlogsByAuthor(authorId);
         List<BlogResponseDto> blogsList = new List<BlogResponseDto>();
         if (blogs.Count() != 0)
         {
@@ -85,7 +85,7 @@ public class BlogController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve blogs of logged-in user", Description = "Fetches all blogs authored by the currently logged-in user.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved user's blogs.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No blogs found for the logged-in user.")]
-    public IActionResult GetBlogsOfLoggedInUser()
+    public async Task<IActionResult> GetBlogsOfLoggedInUser()
     {
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
         int authorId = 0;
@@ -95,7 +95,7 @@ public class BlogController : ControllerBase
         {
             authorId = userId;
         }
-        IEnumerable<Blog> blogs = _blogService.GetBlogsByAuthor(authorId);
+        IEnumerable<Blog> blogs = await _blogService.GetBlogsByAuthor(authorId);
         List<BlogResponseDto> blogsList = new List<BlogResponseDto>();
         if (blogs.Count() != 0)
         {
@@ -119,9 +119,9 @@ public class BlogController : ControllerBase
     [SwaggerOperation(Summary = "Retrieve a single blog", Description = "Fetches details of a blog by its ID.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Successfully retrieved blog details.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Blog not found.")]
-    public IActionResult GetSingleBlog(int blogId)
+    public async Task<IActionResult> GetSingleBlog(int blogId)
     {
-        Blog? blog = _blogService.GetSingleBlog(blogId);
+        Blog? blog = await _blogService.GetSingleBlog(blogId);
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
 
         if (blog != null)
@@ -148,7 +148,7 @@ public class BlogController : ControllerBase
     [SwaggerOperation(Summary = "Add a new blog", Description = "Creates a new blog with the provided details.")]
     [SwaggerResponse(StatusCodes.Status200OK, "Blog added successfully.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid blog details.")]
-    public IActionResult AddUser(BlogRequestDto blogRequest)
+    public async Task<IActionResult> AddUser(BlogRequestDto blogRequest)
     {
         Blog blog = new Blog();
 
@@ -164,10 +164,12 @@ public class BlogController : ControllerBase
         }
         blog.BlogCreated = DateTime.Now;
         blog.BlogUpdated = DateTime.Now;
-        _blogService.AddEntity<Blog>(blog);
+        bool changesDone = false;
+        await _blogService.AddEntity<Blog>(blog);
         try
         {
-            if (_blogService.SaveChanges())
+            changesDone = await _blogService.SaveChanges();
+            if (changesDone)
             {
                 commonFieldsResponseDto.Success = true;
                 commonFieldsResponseDto.Message = "New Blog Added Successfully.";
@@ -191,9 +193,9 @@ public class BlogController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "Blog updated successfully.", typeof(CommonFieldsResponseDto<BlogResponseDto>))]
     [SwaggerResponse(StatusCodes.Status403Forbidden, "You are not authorized to edit this blog.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Blog not found.")]
-    public IActionResult EditBlog(int blogId, BlogRequestDto blogRequest)
+    public async Task<IActionResult> EditBlog(int blogId, BlogRequestDto blogRequest)
     {
-        Blog? blogDb = _blogService.GetSingleBlog(blogId);
+        Blog? blogDb = await _blogService.GetSingleBlog(blogId);
 
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
 
@@ -205,16 +207,18 @@ public class BlogController : ControllerBase
             loggedInUserId = userId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (blogDb != null && (loggedInUser.Admin || loggedInUser.UserId.Equals(loggedInUser.UserId)))
         {
             blogDb.BlogTitle = blogRequest.BlogTitle;
             blogDb.BlogContent = blogRequest.BlogContent;
             blogDb.BlogUpdated = DateTime.Now;
+            bool changesDone = false;
             try
             {
-                if (_blogService.SaveChanges())
+                changesDone = await _blogService.SaveChanges();
+                if (changesDone)
                 {
                     commonFieldsResponseDto.Success = true;
                     commonFieldsResponseDto.Message = "Blog details with id:" + blogId + " is Updated Successfully.";
@@ -243,9 +247,9 @@ public class BlogController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "Blog deleted successfully.")]
     [SwaggerResponse(StatusCodes.Status403Forbidden, "You are not authorized to delete this blog.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Blog not found.")]
-    public IActionResult DeleteBlog(int blogId)
+    public async Task<IActionResult> DeleteBlog(int blogId)
     {
-        Blog? blogDb = _blogService.GetSingleBlog(blogId);
+        Blog? blogDb = await _blogService.GetSingleBlog(blogId);
 
         CommonFieldsResponseDto<BlogResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<BlogResponseDto>();
 
@@ -257,14 +261,16 @@ public class BlogController : ControllerBase
             loggedInUserId = userId;
         }
 
-        User? loggedInUser = _userService.GetSingleUser(loggedInUserId);
+        User? loggedInUser = await _userService.GetSingleUser(loggedInUserId);
 
         if (blogDb != null && (loggedInUser.Admin || loggedInUser.UserId.Equals(loggedInUser.UserId)))
         {
+            bool changesDone = false;
             try
             {
-                _blogService.RemoveEntity<Blog>(blogDb);
-                if (_blogService.SaveChanges())
+                await _blogService.RemoveEntity<Blog>(blogDb);
+                changesDone = await _blogService.SaveChanges();
+                if (changesDone)
                 {
                     commonFieldsResponseDto.Success = true;
                     commonFieldsResponseDto.Message = "Blog details with id: " + blogId + " is deleted Successfully.";

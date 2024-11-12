@@ -5,6 +5,7 @@ namespace BloggingPlatform.dtos
         public string Email {get; set;}
         public string Password {get; set;}
         public string PasswordConfirm {get; set;}
+        public string OtpValue { get; set; }
 
         public ResetPasswordRequestDto()
         {
@@ -19,6 +20,10 @@ namespace BloggingPlatform.dtos
             if (PasswordConfirm == null)
             {
                 PasswordConfirm = "";
+            }
+            if (OtpValue == null)
+            {
+                OtpValue = "";
             }
         }
     }

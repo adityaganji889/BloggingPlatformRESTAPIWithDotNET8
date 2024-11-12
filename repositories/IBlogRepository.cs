@@ -4,13 +4,13 @@ namespace BloggingPlatform.repositories
 {
     public interface IBlogRepository
     {
-        public bool SaveChanges();
-        public void AddEntity<T>(T entityToAdd);
-        public void RemoveEntity<T>(T entityToAdd);
-        public IEnumerable<Blog> GetBlogs();
+        public Task<bool> SaveChanges();
+        public Task AddEntity<T>(T entityToAdd);
+        public Task RemoveEntity<T>(T entityToAdd);
+        public Task<IEnumerable<Blog>> GetBlogs();
 
-        public IEnumerable<Blog> GetBlogsByAuthor(int authorId);
-        public Blog GetSingleBlog(int blogId);
+        public Task<IEnumerable<Blog>> GetBlogsByAuthor(int authorId);
+        public Task<Blog> GetSingleBlog(int blogId);
 
     }
 }

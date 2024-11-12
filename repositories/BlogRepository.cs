@@ -14,24 +14,24 @@ namespace BloggingPlatform.repositories
             _entityFramework = new DataContextEF(config);
         }
 
-        public bool SaveChanges()
+        public async Task<bool> SaveChanges()
         {
-            return _entityFramework.SaveChanges() > 0;
+            return await _entityFramework.SaveChangesAsync() > 0;
         }
 
         // public bool AddEntity<T>(T entityToAdd)
-        public void AddEntity<T>(T entityToAdd)
+        public async Task AddEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
-                _entityFramework.Add(entityToAdd);
+                await _entityFramework.AddAsync(entityToAdd);
                 // return true;
             }
             // return false;
         }
 
         // public bool AddEntity<T>(T entityToAdd)
-        public void RemoveEntity<T>(T entityToAdd)
+        public async Task RemoveEntity<T>(T entityToAdd)
         {
             if (entityToAdd != null)
             {
@@ -41,24 +41,24 @@ namespace BloggingPlatform.repositories
             // return false;
         }
 
-        public IEnumerable<Blog> GetBlogs()
+        public async Task<IEnumerable<Blog>> GetBlogs()
         {
-            IEnumerable<Blog> blogs = _entityFramework.Blogs.Include(b => b.Author).ToList<Blog>();
+            IEnumerable<Blog> blogs = await _entityFramework.Blogs.Include(b => b.Author).ToListAsync<Blog>();
             return blogs;
         }
 
-        public IEnumerable<Blog> GetBlogsByAuthor(int authorId)
+        public async Task<IEnumerable<Blog>> GetBlogsByAuthor(int authorId)
         {
-            IEnumerable<Blog> blogs = _entityFramework.Blogs.Where(u => u.AuthorId == authorId).Include(b => b.Author).ToList<Blog>();
+            IEnumerable<Blog> blogs = await _entityFramework.Blogs.Where(u => u.AuthorId == authorId).Include(b => b.Author).ToListAsync<Blog>();
             return blogs;
         }
 
-        public Blog GetSingleBlog(int blogId)
+        public async Task<Blog> GetSingleBlog(int blogId)
         {
-            Blog? blog = _entityFramework.Blogs
+            Blog? blog = await _entityFramework.Blogs
                 .Where(u => u.BlogId == blogId)
                 .Include(b => b.Author)
-                .FirstOrDefault<Blog>();
+                .FirstOrDefaultAsync<Blog>();
 
             if (blog != null)
             {
