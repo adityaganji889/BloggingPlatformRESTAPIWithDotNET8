@@ -36,6 +36,11 @@ namespace BloggingPlatform.config
                 .ToTable("Users", "BloggingPlatform")
                 .HasKey(u => u.UserId);
 
+            modelBuilder.Entity<User>()
+              .ToTable("Users", "BloggingPlatform")
+              .Property(u => u.UserId)
+              .ValueGeneratedOnAdd(); // Ensure UserId is auto-generated
+
             modelBuilder.Entity<Blog>()
                 .ToTable("Blogs", "BloggingPlatform")
                 .HasKey(b => b.BlogId); // Set the primary key
@@ -47,7 +52,7 @@ namespace BloggingPlatform.config
                 .OnDelete(DeleteBehavior.Cascade); // Configure delete behavior
 
             modelBuilder.Entity<Otp>()
-                .ToTable("Otps","BloggingPlatform")
+                .ToTable("Otps", "BloggingPlatform")
                 .HasKey(o => o.OtpId);
 
             modelBuilder.Entity<Otp>()

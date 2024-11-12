@@ -1,16 +1,25 @@
-namespace BloggingPlatform.models {
+using System.ComponentModel.DataAnnotations;
 
-    
+namespace BloggingPlatform.models
+{
+
+
     public partial class Blog
     {
-        public int BlogId {get; set;}
-        public string BlogTitle {get; set;}
-        public string BlogContent {get; set;}
-        public int AuthorId  {get; set;}
-        public DateTime BlogCreated {get; set;}
-        public DateTime BlogUpdated {get; set;}
+        public int BlogId { get; set; }
 
-         // Navigation property
+        [Required(ErrorMessage = "Blog title is required.")]
+        public string BlogTitle { get; set; }
+
+        [Required(ErrorMessage = "Blog content is required.")]
+        public string BlogContent { get; set; }
+
+        [Required(ErrorMessage = "Author ID is required.")]
+        public int AuthorId { get; set; }
+        public DateTime BlogCreated { get; set; }
+        public DateTime BlogUpdated { get; set; }
+
+        // Navigation property
         public virtual User? Author { get; set; }
 
         public Blog()

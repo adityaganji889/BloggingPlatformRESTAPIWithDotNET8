@@ -97,9 +97,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var smtpSettings = builder.Configuration.GetSection("SmtpSettings");
 
+string? portSetting = smtpSettings["Port"];
+if (string.IsNullOrEmpty(portSetting) || !int.TryParse(portSetting, out int port))
+{
+    throw new InvalidOperationException("SMTP Port is not configured correctly.");
+}
+
 builder.Services.AddSingleton(new SmtpClient(smtpSettings["Server"]) // Replace with your SMTP server
 {
-    Port = int.Parse(smtpSettings["Port"]), // Common SMTP port for TLS
+    Port = port, // Common SMTP port for TLS
     Credentials = new NetworkCredential(smtpSettings["User"], smtpSettings["Password"]), // Replace with your email credentials
     EnableSsl = true,
 });

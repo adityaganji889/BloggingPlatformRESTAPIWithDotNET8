@@ -68,8 +68,8 @@ namespace BloggingPlatform.controllers
                     newUser.Email = userForRegistration.Email;
                     newUser.PasswordHash = passwordHash;
                     newUser.PasswordSalt = passwordSalt;
-                    newUser.Gender = userForRegistration.Gender == "male" ? true : false;
-                    newUser.Active = true;
+                    newUser.Gender = userForRegistration.Gender == "Male" ? true : false;
+                    newUser.Active = false;
                     newUser.Admin = false;
                     newUser.UserCreated = DateTime.Now;
                     newUser.UserUpdated = DateTime.Now;
@@ -77,11 +77,45 @@ namespace BloggingPlatform.controllers
 
                     if (await _entityFramework.SaveChangesAsync() > 0)
                     {
-                        commonFieldsResponseDto.Success = true;
-                        commonFieldsResponseDto.Message = "New User Registered Successfully.";
-                        commonFieldsResponseDto.Response = _mapper.Map<RegisterResponseDto>(newUser);
-                        commonFieldsResponseDto.ResponseList = null;
-                        return Ok(commonFieldsResponseDto.GetFilteredResponse());
+                        int newUserId = newUser.UserId;
+                        Otp newOtp = new Otp();
+                        var otp = new Random().Next(100000, 999999).ToString(); // Generate a 6-digit OTP
+                        newOtp.UserId = newUserId;
+                        newOtp.OtpValue = otp; // Assuming you have an OTP field in your User entity
+                        newOtp.OtpCreated = DateTime.Now;
+                        newOtp.OtpUpdated = DateTime.Now;
+                        newOtp.OtpExpiration = DateTime.Now.AddMinutes(10); // OTP valid for 10 minutes
+                        await _entityFramework.AddAsync(newOtp);
+                        // Save user with the new OTP
+                        if (await _entityFramework.SaveChangesAsync() > 0)
+                        {
+                            var smtpSettings = _config.GetSection("SmtpSettings");
+
+                            string? email = smtpSettings["User"];
+                            if (string.IsNullOrEmpty(email))
+                            {
+                                throw new InvalidOperationException("SMTP User email is not configured.");
+                            }
+                            // Send the OTP via email
+                            var mailMessage = new MailMessage
+                            {
+                                From = new MailAddress(email), // Replace with your sender email
+                                Subject = "Verify Email For Blogging API Auth",
+                                Body = "Your OTP to verify email is: " + otp + ", will expire in next 10 mins.",
+                                IsBodyHtml = true,
+                            };
+
+                            mailMessage.To.Add(userForRegistration.Email);
+
+                            await _smtpClient.SendMailAsync(mailMessage);
+
+                            commonFieldsResponseDto.Success = true;
+                            commonFieldsResponseDto.Message = "New User is Registered and OTP is sent to email: " + userForRegistration.Email + " Successfully.";
+                            commonFieldsResponseDto.Response = _mapper.Map<RegisterResponseDto>(newUser);
+                            commonFieldsResponseDto.ResponseList = null;
+                            return Ok(commonFieldsResponseDto.GetFilteredResponse());
+                        }
+
                     }
                     throw new Exception("Failed to add user.");
                 }
@@ -95,6 +129,52 @@ namespace BloggingPlatform.controllers
             {
                 throw new Exception("Passwords do not match!");
             }
+        }
+
+        [AllowAnonymous]
+        [HttpPut("VerifyEmail")]
+        [SwaggerOperation(Summary = "Verify Email Of Newly Registered User/Newly Updated Email", Description = "Updates the user's active status to true based on email verification.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User email verified successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid user email details.")]
+        public async Task<IActionResult> VerifyEmail(VerifyEmailRequestDto userForRegistration)
+        {
+            CommonFieldsResponseDto<RegisterResponseDto> commonFieldsResponseDto = new CommonFieldsResponseDto<RegisterResponseDto>();
+
+            User? user = await _entityFramework.Users
+            .Where(u => u.Email == userForRegistration.Email)
+            .FirstOrDefaultAsync<User>();
+            if (user != null)
+            {
+                // Check OTP validity
+                Otp? otp = await _entityFramework.Otps.Where(o => o.UserId == user.UserId).FirstOrDefaultAsync<Otp>();
+                // otp.UserId != user.UserId || otp.OtpValue != userForRegistration.OtpValue || otp.OtpExpiration < DateTime.Now
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                if (otp.UserId != user.UserId || otp.OtpValue != userForRegistration.OtpValue || otp.OtpExpiration < DateTime.Now)
+                {
+                    return BadRequest("OTP validation failed.");
+                }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+                user.Active = true;
+                user.UserUpdated = DateTime.Now;
+
+                _entityFramework.Remove(otp);
+
+                if (await _entityFramework.SaveChangesAsync() > 0)
+                {
+                    commonFieldsResponseDto.Success = true;
+                    commonFieldsResponseDto.Message = "User with Email: " + user.Email + " is verified successfully.";
+                    commonFieldsResponseDto.Response = null;
+                    commonFieldsResponseDto.ResponseList = null;
+                    return Ok(commonFieldsResponseDto.GetFilteredResponse());
+                }
+                throw new Exception("Failed to verify email.");
+            }
+            else
+            {
+                throw new Exception("User with this email doesnot exists!");
+            }
+            throw new Exception("Failed to verify email.");
         }
 
         [AllowAnonymous]
@@ -217,7 +297,7 @@ namespace BloggingPlatform.controllers
         // Your GenerateOtp method
         [AllowAnonymous]
         [HttpPost("GenerateOtp")]
-        [SwaggerOperation(Summary = "Generate OTP for password reset", Description = "Sends an OTP to the user's email for password reset verification.")]
+        [SwaggerOperation(Summary = "Generate OTP for password reset/verify newly updated email", Description = "Sends an OTP to the user's email for password reset/newly updated email verification.")]
         [SwaggerResponse(StatusCodes.Status200OK, "OTP sent successfully.")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "User not found.")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters.")]
@@ -250,7 +330,7 @@ namespace BloggingPlatform.controllers
                 }
                 await _entityFramework.SaveChangesAsync();
             }
-            
+
             Otp newOtp = new Otp();
             var otp = new Random().Next(100000, 999999).ToString(); // Generate a 6-digit OTP
             newOtp.UserId = user.UserId;
@@ -265,12 +345,17 @@ namespace BloggingPlatform.controllers
             var smtpSettings = _config.GetSection("SmtpSettings");
 
             string? email = smtpSettings["User"];
+
+            if (string.IsNullOrEmpty(email))
+            {
+                throw new InvalidOperationException("SMTP User email is not configured.");
+            }
             // Send the OTP via email
             var mailMessage = new MailMessage
             {
                 From = new MailAddress(email), // Replace with your sender email
-                Subject = "Password Reset For Blogging API",
-                Body = "Your OTP is for reset password: " + otp + " will expire in next 10 mins.",
+                Subject = "Password Reset/Verify Newly Updated Email For Blogging API Auth",
+                Body = "Your OTP for reset password/verify newly updated email is: " + otp + ", will expire in next 10 mins.",
                 IsBodyHtml = true,
             };
 

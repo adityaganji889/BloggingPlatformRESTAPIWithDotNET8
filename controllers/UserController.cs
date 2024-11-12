@@ -114,6 +114,9 @@ public class UserController : ControllerBase
         {
             userDb.FirstName = user.FirstName;
             userDb.LastName = user.LastName;
+            if(userDb.Email != user.Email){
+              userDb.Active = false;
+            }
             userDb.Email = user.Email;
             userDb.Gender = user.Gender == "Male" ? true : false;
             userDb.UserUpdated = DateTime.Now;
@@ -131,11 +134,22 @@ public class UserController : ControllerBase
                 commonFieldsResponseDto.Success = true;
                 if (userDb.UserId.Equals(loggedInUser.UserId))
                 {
-                    commonFieldsResponseDto.Message = "Your User Profile with id: " + loggedInUser.UserId + " is Updated Successfully.";
+                    if(!userDb.Active){
+                       commonFieldsResponseDto.Message = "Your User Profile with id: " + loggedInUser.UserId + " is Updated Successfully. Please verify your new email before next login.";
+                    }
+                    else {
+                       commonFieldsResponseDto.Message = "Your User Profile with id: " + loggedInUser.UserId + " is Updated Successfully."; 
+                    }
                 }
                 else
                 {
-                    commonFieldsResponseDto.Message = "User Details with id: " + userId + " is Updated Successfully.";
+                    if(!userDb.Active){
+                       commonFieldsResponseDto.Message = "User Details with id: " + userId + " is Updated Successfully. Please ask the user to verify their new email before next login.";
+                    }
+                    else {
+                       commonFieldsResponseDto.Message = "User Details with id: " + userId + " is Updated Successfully.";
+                    }
+                    
                 }
                 commonFieldsResponseDto.Response = _mapper.Map<RegisterResponseDto>(userDb);
                 commonFieldsResponseDto.ResponseList = null;
