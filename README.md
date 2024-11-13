@@ -11,7 +11,7 @@
  * Documented proper error handling for a few scenarios, and how they would be returned with meaningful error messages.
 
 ## Backend Schema Diagram:
-![image](https://github.com/user-attachments/assets/55a1c07b-a3a2-4dc3-8fff-03a6d4e36d08)
+![image](https://github.com/user-attachments/assets/26b3f971-3a87-4f3c-bea4-617a7c51757f)
 
 
 ## Tech Stack Used:
@@ -21,6 +21,10 @@
 
 #### Database:
 <img alt="Microsoft SQL Server" src ="https://img.shields.io/badge/Microsoft%20SQL%20Server-CC2927?style=for-the-badge&logo=microsoft%20sql%20serve&logoColor=white"/>
+
+#### Deployed Version:
+
+https://bloggingplatform-latest.onrender.com/swagger/index.html
 
 ## Demonstration:
 
