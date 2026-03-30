@@ -110,7 +110,7 @@ builder.Services.AddSingleton(new SmtpClient(smtpSettings["Server"]) // Replace 
     EnableSsl = true,
 });
 
-
+builder.Services.AddHttpClient(); //Render SMTP Mail changes
 
 var app = builder.Build();
 

@@ -1,7 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Net.Mail;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using AutoMapper;
 using BloggingPlatform.config;
@@ -11,9 +9,8 @@ using BloggingPlatform.models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Swashbuckle.AspNetCore.Annotations;
-
+using System.Text.Json; //Render SMTP Mail changes
 
 namespace BloggingPlatform.controllers
 {
@@ -27,13 +24,16 @@ namespace BloggingPlatform.controllers
         private readonly AuthHelper _authHelper;
         private readonly IMapper _mapper;
         private readonly SmtpClient _smtpClient;
-        public AuthController(IConfiguration config, IMapper mapper, SmtpClient smtpClient)
+        private readonly HttpClient _httpClient; //Render SMTP Mail changes
+
+        public AuthController(IConfiguration config, IMapper mapper, SmtpClient smtpClient, HttpClient httpClient) //Render SMTP Mail changes
         {
             _config = config;
             _entityFramework = new DataContextEF(config);
             _authHelper = new AuthHelper(config);
             _mapper = mapper;
             _smtpClient = smtpClient;
+            _httpClient = httpClient; //Render SMTP Mail changes
         }
 
         [AllowAnonymous]
@@ -97,17 +97,75 @@ namespace BloggingPlatform.controllers
                                 throw new InvalidOperationException("SMTP User email is not configured.");
                             }
                             // Send the OTP via email
-                            var mailMessage = new MailMessage
+                            // var mailMessage = new MailMessage
+                            // {
+                            //     From = new MailAddress(email), // Replace with your sender email
+                            //     Subject = "Verify Email For Blogging API Auth",
+                            //     Body = "Your OTP to verify email is: " + otp + ", will expire in next 10 mins.",
+                            //     IsBodyHtml = true,
+                            // };
+
+                            // mailMessage.To.Add(userForRegistration.Email);
+
+                            // await _smtpClient.SendMailAsync(mailMessage);
+                            //Render SMTP Mail changes
+                            var apiUrl = _config["EmailApi:Url"];
+
+                            var requestBody = new
                             {
-                                From = new MailAddress(email), // Replace with your sender email
-                                Subject = "Verify Email For Blogging API Auth",
-                                Body = "Your OTP to verify email is: " + otp + ", will expire in next 10 mins.",
-                                IsBodyHtml = true,
+                                user = new
+                                {
+                                    _id = newUser.UserId,
+                                    email = userForRegistration.Email
+                                },
+                                otp = otp,
+                                mailType = "verifyemailotp",
+                                appType = ".NET8 Blogging API Auth"
                             };
 
-                            mailMessage.To.Add(userForRegistration.Email);
+                            var jsonContent = new StringContent(
+                                JsonSerializer.Serialize(requestBody),
+                                System.Text.Encoding.UTF8,
+                                "application/json"
+                            );
 
-                            await _smtpClient.SendMailAsync(mailMessage);
+                            var request = new HttpRequestMessage(HttpMethod.Post, apiUrl);
+                            request.Content = jsonContent;
+
+                            var response = await _httpClient.SendAsync(request);
+
+                            // Read the response content as string
+                            var responseContent = await response.Content.ReadAsStringAsync();
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var error = await response.Content.ReadAsStringAsync();
+                                throw new Exception($"Failed to send OTP. Response: {error}");
+                            }
+
+                            // Parse JSON without a DTO
+                            var jsonDoc = JsonDocument.Parse(responseContent);
+                            var root = jsonDoc.RootElement;
+
+                            // Check if 'success' is true
+                            bool success = root.GetProperty("success").GetBoolean();
+                            if (!success)
+                            {
+                                string message = root.GetProperty("message").GetString() ?? "No message returned";
+                                throw new Exception($"Email API failed: {message}");
+                            }
+
+                            // Extract the OTP token from 'data'
+                            string token = root.GetProperty("data").GetString() ?? "";
+                            if (string.IsNullOrEmpty(token))
+                            {
+                                throw new Exception("Token not returned from email API.");
+                            }
+
+                            //At this point, 'token' contains the OTP or token from API
+                            Console.WriteLine($"Token received from 3rd Party API: {token}");
+
+                            //Render SMTP Mail changes
 
                             commonFieldsResponseDto.Success = true;
                             commonFieldsResponseDto.Message = "New User is Registered and OTP is sent to email: " + userForRegistration.Email + " Successfully.";
@@ -351,17 +409,84 @@ namespace BloggingPlatform.controllers
                 throw new InvalidOperationException("SMTP User email is not configured.");
             }
             // Send the OTP via email
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(email), // Replace with your sender email
-                Subject = "Password Reset/Verify Newly Updated Email For Blogging API Auth",
-                Body = "Your OTP for reset password/verify newly updated email is: " + otp + ", will expire in next 10 mins.",
-                IsBodyHtml = true,
-            };
+            // var mailMessage = new MailMessage
+            // {
+            //     From = new MailAddress(email), // Replace with your sender email
+            //     Subject = "Password Reset/Verify Newly Updated Email For Blogging API Auth",
+            //     Body = "Your OTP for reset password/verify newly updated email is: " + otp + ", will expire in next 10 mins.",
+            //     IsBodyHtml = true,
+            // };
 
-            mailMessage.To.Add(user.Email);
+            // mailMessage.To.Add(user.Email);
 
-            await _smtpClient.SendMailAsync(mailMessage);
+            // await _smtpClient.SendMailAsync(mailMessage);
+
+            //Render SMTP Mail changes
+                            var apiUrl = _config["EmailApi:Url"];
+
+                            var requestBody = new
+                            {
+                                user = new
+                                {
+                                    _id = user.UserId,
+                                    email = user.Email
+                                },
+                                otp = otp,
+                                mailType = "generateOTP",
+                                appType = ".NET8 Blogging API Auth".Trim()
+                            };
+
+                            var jsonString = JsonSerializer.Serialize(requestBody);
+                            Console.WriteLine("JSON being sent to external API:");
+                            Console.WriteLine(jsonString);
+
+                            var jsonContent = new StringContent(
+                                jsonString,
+                                System.Text.Encoding.UTF8,
+                                "application/json"
+                            );
+
+                            var request = new HttpRequestMessage(HttpMethod.Post, apiUrl);
+                            Console.WriteLine($"request: {request}");
+                            request.Content = jsonContent;
+                            Console.WriteLine($"request.Content: {jsonContent}");
+
+                            var response = await _httpClient.SendAsync(request);
+
+                            // Read the response content as string
+                            var responseContent = await response.Content.ReadAsStringAsync();
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var error = await response.Content.ReadAsStringAsync();
+                                throw new Exception($"Failed to send OTP. Response: {error}");
+                            }
+
+                            // Parse JSON without a DTO
+                            var jsonDoc = JsonDocument.Parse(responseContent);
+                            Console.WriteLine($"jsonDoc: {jsonDoc}");
+                            var root = jsonDoc.RootElement;
+                            Console.WriteLine($"Root element: {root}");
+
+                            // Check if 'success' is true
+                            bool success = root.GetProperty("success").GetBoolean();
+                            if (!success)
+                            {
+                                string message = root.GetProperty("message").GetString() ?? "No message returned";
+                                throw new Exception($"Email API failed: {message}");
+                            }
+
+                            // Extract the OTP token from 'data'
+                            string token = root.GetProperty("data").GetString() ?? "";
+                            if (string.IsNullOrEmpty(token))
+                            {
+                                throw new Exception("Token not returned from email API.");
+                            }
+
+                            //At this point, 'token' contains the OTP or token from API
+                            Console.WriteLine($"Token received from 3rd Party API: {token}");
+
+                            //Render SMTP Mail changes
 
             commonFieldsResponseDto.Success = true;
             commonFieldsResponseDto.Message = "OTP to email:" + user.Email + " is sent successfully.";
